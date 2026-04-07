@@ -1,10 +1,12 @@
 "use client";
 
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CircleCheck, Pause, Play, Timer } from "lucide-react";
+import { toast } from "sonner";
+import { CircleCheck, Edit, Pause, Play, Timer, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { addTask } from "@/app/actions";
+import { addTask, deleteTask } from "@/app/actions";
 
 const Logger = ({ user, userTasks }) => {
   const [isRunning, setIsRunning] = useState(false);
@@ -14,6 +16,8 @@ const Logger = ({ user, userTasks }) => {
   const [counter, setCounter] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [currentTaskName, setCurrentTaskName] = useState("");
+  const [currentTaskTag, setCurrentTaskTag] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -40,8 +44,8 @@ const Logger = ({ user, userTasks }) => {
 
   const startTimer = () => {
     if (!user) {
-      alert("Sign in first");
-      return;
+      toast("You need to sign in first");
+      return null;
     }
     if (isRunning) return;
     let startTime = Date.now();
@@ -51,106 +55,145 @@ const Logger = ({ user, userTasks }) => {
 
   const stopTimer = () => {
     if (!isRunning) return null;
-    console.log("STOPPING TIMER...");
+
     setIsRunning(false);
     let stopTime = Date.now();
-    console.log("=====> Started at:", startedAt);
-    console.log("=====> Stopped at:", stopTime);
+
     setStoppedAt(stopTime);
-    console.log("stoppedAt state updated:", stoppedAt);
     let duration = (stopTime - startedAt) / 1000;
-    console.log("=====> Duration in seconds:", duration);
     const newTimeEntries = [...timeEntries, duration];
+
     setTimeEntries(newTimeEntries);
-    console.log("Current time entries:", newTimeEntries);
     return duration;
   };
 
   const calculateTime = async () => {
     if (!startedAt) return;
     if (!currentTaskName) {
-      alert("set a name for your task asshole");
-      return;
+      toast("set a name for your task ");
+      return null;
     }
-    // console.log(isRunning);
     let currentDuration = 0;
     if (isRunning) {
       currentDuration = stopTimer();
     }
-    console.log("Stopped at:", stoppedAt);
-    console.log("Calculating total time...");
-
-    let sum = 0;
-    // Add all existing time entries
-    for (let time of timeEntries) {
-      sum += time;
-    }
-    // Add the current session duration if we just stopped
+    let sum = timeEntries.reduce((acc, t) => acc + t, 0);
+   
     if (currentDuration) {
       sum += currentDuration;
     }
 
     console.log("TOTAL DURATION:", sum);
-
     saveTask(sum);
-
     setCounter(0);
     setStartedAt(null);
     setTimeEntries([]);
   };
 
   const saveTask = async (duration) => {
-    let newTask = { name: currentTaskName, duration: duration };
+    let newTask = {
+      name: currentTaskName,
+      duration: duration,
+      tag: currentTaskTag,
+    };
     setCurrentTaskName("");
+    setCurrentTaskTag("");
+    setLoading(true);
     const res = await addTask(newTask);
-    setTasks([...tasks, { name: res.name, duration: res.duration }]);
+    setTasks([
+      ...tasks,
+      { name: res.name, duration: res.duration, tag: res.tag },
+    ]);
+    toast("Task saved successfully");
     console.log(res);
     console.log(newTask);
+    setLoading(false);
   };
 
   const showTime = () => {
     return convertToRealFormat(counter);
   };
 
-  return (
-    <div className="mx-auto max-w-7xl mx-auto  my-10 text-2xl">
-      <div className="text-center">
-        <div className=" ">{!startedAt ? "00:00:00" : showTime()}</div>
+  const deleteTaskHandler = async (task) => {
+    toast("Are you sure you want to delete this task ? ", {
+      position: "top-center",
+      action: {
+        label: "Yes",
+        onClick: () => {
+              setLoading(true);
 
-        <Input
-          required
-          value={currentTaskName}
-          onChange={(e) => setCurrentTaskName(e.target.value)}
-          placeholder={"Task's name ..."}
-          className="w-64 m-10"
-        ></Input>
-        <Button
-          onClick={startTimer}
-          size="lg"
-          className="rounded-full bg-green-500"
-          variant="outline"
-        >
-          <Play />
-        </Button>
-        <Button
-          onClick={stopTimer}
-          size="lg"
-          className="rounded-full bg-red-500"
-          variant="outline"
-        >
-          <Pause />
-        </Button>
-        <Button
-          onClick={calculateTime}
-          size="lg"
-          className="rounded-full bg-purple-500"
-          variant="outline"
-        >
-          <CircleCheck />
-        </Button>
+        },
+      },
+    });
+
+    const res = await deleteTask(task);
+    setTasks(
+      tasks.filter(
+        (t) =>
+          t.name !== task.name ||
+          t.duration !== task.duration ||
+          t.tag !== task.tag,
+      ),
+    );
+    setLoading(false);
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl mx-auto my-10 text-2xl">
+      <div className="flex flex-row text-center mx-auto mb-5 bg-mauve-100 p-5 rounded-lg w-full max-w-1/2 ">
+        <div>
+          <Field className="w-64 m-10">
+            <FieldLabel htmlFor="input-demo-api-key">Task's Name</FieldLabel>
+            <Input
+              required
+              value={currentTaskName}
+              onChange={(e) => setCurrentTaskName(e.target.value)}
+              placeholder={"Task's name ..."}
+            ></Input>
+          </Field>
+          <Field className="w-64 m-10">
+            <FieldLabel htmlFor="input-demo-api-key">
+              Task's Category
+            </FieldLabel>
+            <Input
+              required
+              value={currentTaskTag}
+              onChange={(e) => setCurrentTaskTag(e.target.value)}
+              placeholder={"Task's category ..."}
+            ></Input>
+          </Field>
+        </div>
+        <div className="my-auto ml-5">
+          <div className="mb-5 ">{!startedAt ? "00:00:00" : showTime()}</div>
+          <Button
+            onClick={startTimer}
+            size="lg"
+            className="rounded-full bg-green-500"
+            variant="outline"
+          >
+            <Play />
+          </Button>
+          <Button
+            onClick={stopTimer}
+            size="lg"
+            className="rounded-full bg-red-500"
+            variant="outline"
+          >
+            <Pause />
+          </Button>
+          <Button
+            onClick={calculateTime}
+            size="lg"
+            className="rounded-full bg-violet-400"
+            variant="outline"
+            disabled={loading}
+          >
+            <CircleCheck />
+          </Button>
+        </div>
       </div>
 
-      <div className=" flex flex-col text-xl bg-gray-100 p-5 rounded-lg mx-auto">
+      <div className=" flex flex-col text-xl bg-mauve-100 p-5 rounded-lg mx-auto w-full max-w-3/4">
         <p className=" text-center bg-rose-100 font-bold text-red-500">
           {tasks.length > 0
             ? "total time : " +
@@ -161,21 +204,43 @@ const Logger = ({ user, userTasks }) => {
               )
             : ""}
         </p>
-        <p className="font-bold text-violet-500 mb-5">Tasks : </p>
+        <div className="font-bold flex flex-row text-violet-500 mb-5">
+          <p className="basis-1/2 ml-10">Task </p>
+          <p className="basis-1/2 text-right mr-10">Duration </p>
+        </div>
 
         <div className="flex flex-col ml-5 gap-2">
-          {tasks.map(({ duration, name }) => (
-            <div className="flex flex-row" key={name}>
+          {tasks.map(({ duration, name, tag }) => (
+            <div className="flex flex-row bg-white p-2 rounded-lg" key={name+duration}>
               <div className="flex flex-row basis-1/2 items-center">
                 <Timer className="mx-3 text-gray-500" />
 
-                  <p className="  text-2xl mr-5  ">{name} </p>
-                </div>
-                <div className="flex flex-col">
-                  <p className=" text-2xl  ">
-                duration : {convertToRealFormat(duration)}
-              </p></div>
-                  
+                <p className="text-2xl mr-5">{name} </p>
+                {tag && (
+                  <span className="text-sm text-gray-700 bg-red-200 rounded-full px-2 py-1">
+                    {tag}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col items-end basis-1/2">
+                <p className=" text-2xl  ">{convertToRealFormat(duration)}</p>
+              </div>
+              <Button
+                onClick={() => deleteTaskHandler({ name, duration, tag })}
+                size="lg"
+                className="mx-3 rounded-full bg-red-300"
+                variant="outline"
+              >
+                <Trash />
+              </Button>
+              <Button
+                onClick={() => editTaskHandler({ name, duration, tag })}
+                size="lg"
+                className="mx-3 rounded-full bg-green-100"
+                variant="outline"
+              >
+                <Edit />
+              </Button>
             </div>
           ))}
         </div>

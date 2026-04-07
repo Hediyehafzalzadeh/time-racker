@@ -14,11 +14,10 @@ const LoginButton = ({ user }) => {
         return(
             <form action={signOut}>
         <Button
-          className="gap-2 "
+          className="gap-2 bg-red-200 hover:bg-red-400"
           variant="ghost"
           size="lg"
           type="submit"
-          
         >
           Sign Out
         </Button>
