@@ -45,13 +45,16 @@ const Logger = ({ user, userTasks }) => {
       setCounter(parseInt(c));
     }
 
-    if(!timeEntries){
+    if (!timeEntries) {
       localStorage.setItem("timeEntries", JSON.stringify([]));
     }
     if (startTime && saved === "false") {
-      console.log("start time found in localStorage, resuming timer" , startTime);
+      console.log(
+        "start time found in localStorage, resuming timer",
+        startTime,
+      );
       setIsRunning(true);
-    } 
+    }
   }, []);
 
   const startTimer = () => {
@@ -111,8 +114,6 @@ const Logger = ({ user, userTasks }) => {
     localStorage.setItem("saved", true);
     localStorage.removeItem("counter");
     setCounter(0);
-
-
   };
 
   const saveTask = async (duration) => {
@@ -141,15 +142,13 @@ const Logger = ({ user, userTasks }) => {
   };
 
   const showTime = () => {
+    const checkSaved = localStorage.getItem("saved");
 
-  const checkSaved = localStorage.getItem("saved");
-   
-    if(isRunning || checkSaved === "false") {
-      return convertToRealFormat(counter)} ;
+    if (isRunning || checkSaved === "false") {
+      return convertToRealFormat(counter);
+    }
 
-      return "00:00:00";
-
-    
+    return "00:00:00";
   };
 
   const deleteTaskHandler = async (task) => {
@@ -174,19 +173,19 @@ const Logger = ({ user, userTasks }) => {
     localStorage.setItem("saved", true);
     localStorage.removeItem("counter");
     setCounter(0);
+  };
 
-    }
-
-  const editTaskHandler = async (task , updatedTask) => {
-
+  const editTaskHandler = async (task, updatedTask) => {
     setLoading(true);
-    console.log("task id :" , task.id )
+    console.log("task id :", task.id);
     const res = await updateTask(task, updatedTask);
     // const updated = tasks.filter((t) => t.id !== task.id);
-    setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...updatedTask } : t))
-    console.log(updatedTask , res);
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, ...updatedTask } : t)),
+    );
+    console.log(updatedTask, res);
     setLoading(false);
-  }
+  };
 
   return (
     <div className="mx-auto max-w-7xl mx-auto my-10 text-2xl">
@@ -212,22 +211,18 @@ const Logger = ({ user, userTasks }) => {
               placeholder={"Task's category ..."}
             ></Input>
           </Field>
-          <ManualDialog className=""
-
-            open={manualDialogOpen}
-            onConfirm = {() => {
-              console.log("manual dialog confirmed"); 
-              setManualDialogOpen(false)}}
+          <ManualDialog
+            className=""
+            open={!!manualDialogOpen}
+            onClose={setManualDialogOpen}
             onAdd={(task) => {
               saveTask(
                 (task.finishedAt.getTime() - task.startedAt.getTime()) / 1000,
               );
-              
+
               console.log(task);
             }}
           />
-          
-
         </div>
         <div className="my-auto ml-5">
           <div className="mb-5 ">{showTime()}</div>
@@ -258,14 +253,14 @@ const Logger = ({ user, userTasks }) => {
           </Button>
           <div className="mt-3">
             <Button
-            onClick={() => resetTimer()}
-            size="lg"
-            className="bg-red-400"
-            variant="outline"
-          >
-            Reset Timert
-          </Button></div>
-          
+              onClick={() => resetTimer()}
+              size="lg"
+              className="bg-red-400"
+              variant="outline"
+            >
+              Reset Timert
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -312,16 +307,14 @@ const Logger = ({ user, userTasks }) => {
                 onConfirm={() => deleteTaskHandler(task)}
               />
               <EditTaskDialog
-               
                 task={task}
                 open={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 onConfirm={() => setConfirmOpen(false)}
                 onAdd={(updatedTask) => {
                   editTaskHandler(task, updatedTask);
-            }}
+                }}
               />
-              
             </div>
           ))}
         </div>

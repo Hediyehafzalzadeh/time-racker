@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner";
 
-const ManualDialog = ({onAdd , onConfirm }) => {
+const ManualDialog = ({onAdd , onConfirm , onClose , open}) => {
     const [startedAt, setStartedAt] = React.useState("");
     const [finishedAt, setFinishedAt] = React.useState("");
 
@@ -24,18 +24,19 @@ const ManualDialog = ({onAdd , onConfirm }) => {
         if (!startedAt || !finishedAt || new Date(startedAt) >= new Date(finishedAt)) {
             toast("Please enter valid start and end times.");
             return null;
-
         };
 
-        onConfirm();
+
         onAdd({
             startedAt : new Date(startedAt),
             finishedAt : new Date(finishedAt)
         }) 
+        
+
 
         }
   return (
-    <div><Dialog>
+    <div><Dialog open={open} onOpenChange={onClose}>
       <form>
         <DialogTrigger asChild>
           <Button variant="outline">Add Time Manually</Button>
@@ -62,7 +63,11 @@ const ManualDialog = ({onAdd , onConfirm }) => {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button type="submit" onClick={() => saveTaskManually()}>Save changes</Button>
+            <Button type="submit" onClick={() =>{
+              saveTaskManually(); 
+              onClose();
+
+            } }>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </form>
