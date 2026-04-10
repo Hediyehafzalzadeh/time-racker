@@ -117,3 +117,39 @@ export async function deleteTask(task ) {
     
     
 }
+
+
+export async function updateTask(task , updatedTask ) {
+    if(!task) throw new Error("no task provided");
+
+    try{
+    const supabase = await createClient();
+    const {
+            data : { user}, } 
+            = await supabase.auth.getUser(); 
+            if (!user) {
+                throw new Error("Not authenticated");
+            }
+    const { data , error } = await supabase.from("tasks").update({
+
+        name : updatedTask.name || task.name,
+        duration : updatedTask.duration || task.duration,
+        created_at : task.created_at ,
+        tag : updatedTask.tag || task.tag
+
+    }).eq("id" , task.id)
+    .select()
+    .single();
+    return {name: data.name , duration: data.duration, tag: data.tag} ;
+ 
+    
+
+    }catch (error){
+        console.error("error in updateTask :", error);
+            return {error : error.message || "Failed to save task"}
+    }
+
+
+    
+    
+}

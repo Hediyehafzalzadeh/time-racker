@@ -6,15 +6,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CircleCheck, Edit, Pause, Play, Timer, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { addTask, deleteTask } from "@/app/actions";
+import { addTask, deleteTask, updateTask } from "@/app/actions";
 import ManualDialog from "./ManualDialog";
 import ConfirmationDialog from "./ConfirmationDialog";
+import { set } from "date-fns";
+import EditTaskDialog from "./EditTaskDialog";
 
 const Logger = ({ user, userTasks }) => {
   const [isRunning, setIsRunning] = useState(false);
-  const [startedAt, setStartedAt] = useState(null);
-  const [stoppedAt, setStoppedAt] = useState(null);
-  const [timeEntries, setTimeEntries] = useState([]);
   const [counter, setCounter] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [currentTaskName, setCurrentTaskName] = useState("");
@@ -23,12 +22,12 @@ const Logger = ({ user, userTasks }) => {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-
   useEffect(() => {
     if (!isRunning) return;
-
     let interval = setInterval(() => {
-      setCounter((prev) => prev + 1);
+      setCounter(
+        (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
+      );
     }, 1000);
     return () => clearInterval(interval);
   }, [isRunning]);
@@ -37,14 +36,36 @@ const Logger = ({ user, userTasks }) => {
     setTasks(userTasks);
   }, []);
 
+  useEffect(() => {
+    const startTime = localStorage.getItem("startedAt");
+    const saved = localStorage.getItem("saved");
+    const c = localStorage.getItem("counter");
+    const timeEntries = localStorage.getItem("timeEntries");
+    if (c) {
+      setCounter(parseInt(c));
+    }
+
+    if(!timeEntries){
+      localStorage.setItem("timeEntries", JSON.stringify([]));
+    }
+    if (startTime && saved === "false") {
+      console.log("start time found in localStorage, resuming timer" , startTime);
+      setIsRunning(true);
+    } 
+  }, []);
+
   const startTimer = () => {
     if (!user) {
       toast("You need to sign in first");
       return null;
     }
     if (isRunning) return;
+
+    console.log("start timer");
     let startTime = Date.now();
-    setStartedAt(startTime);
+    localStorage.setItem("startedAt", startTime);
+    localStorage.setItem("saved", false);
+
     setIsRunning(true);
   };
 
@@ -53,17 +74,20 @@ const Logger = ({ user, userTasks }) => {
 
     setIsRunning(false);
     let stopTime = Date.now();
-
-    setStoppedAt(stopTime);
+    let startedAt = parseInt(localStorage.getItem("startedAt"));
+    let timeEntries = JSON.parse(localStorage.getItem("timeEntries"));
+    console.log(timeEntries);
     let duration = (stopTime - startedAt) / 1000;
     const newTimeEntries = [...timeEntries, duration];
+    localStorage.removeItem("startedAt");
+    localStorage.setItem("timeEntries", JSON.stringify(newTimeEntries));
+    localStorage.setItem("counter", counter);
 
-    setTimeEntries(newTimeEntries);
     return duration;
   };
 
   const calculateTime = async () => {
-    if (!startedAt) return;
+    if (localStorage.getItem("saved") === "true") return;
     if (!currentTaskName) {
       toast("set a name for your task ");
       return null;
@@ -72,20 +96,30 @@ const Logger = ({ user, userTasks }) => {
     if (isRunning) {
       currentDuration = stopTimer();
     }
+    let timeEntries = JSON.parse(localStorage.getItem("timeEntries"));
+    console.log("time entries :", timeEntries);
     let sum = timeEntries.reduce((acc, t) => acc + t, 0);
-   
+
     if (currentDuration) {
       sum += currentDuration;
     }
 
     console.log("TOTAL DURATION:", sum);
     saveTask(sum);
+    localStorage.removeItem("startedAt");
+    localStorage.setItem("timeEntries", JSON.stringify([]));
+    localStorage.setItem("saved", true);
+    localStorage.removeItem("counter");
     setCounter(0);
-    setStartedAt(null);
-    setTimeEntries([]);
+
+
   };
 
   const saveTask = async (duration) => {
+    if (!currentTaskName) {
+      toast("set a name for your task ");
+      return null;
+    }
     let newTask = {
       name: currentTaskName,
       duration: duration,
@@ -107,7 +141,15 @@ const Logger = ({ user, userTasks }) => {
   };
 
   const showTime = () => {
-    return convertToRealFormat(counter);
+
+  const checkSaved = localStorage.getItem("saved");
+   
+    if(isRunning || checkSaved === "false") {
+      return convertToRealFormat(counter)} ;
+
+      return "00:00:00";
+
+    
   };
 
   const deleteTaskHandler = async (task) => {
@@ -124,6 +166,27 @@ const Logger = ({ user, userTasks }) => {
     );
     setLoading(false);
   };
+
+  const resetTimer = () => {
+    setIsRunning(false);
+    localStorage.removeItem("startedAt");
+    localStorage.setItem("timeEntries", JSON.stringify([]));
+    localStorage.setItem("saved", true);
+    localStorage.removeItem("counter");
+    setCounter(0);
+
+    }
+
+  const editTaskHandler = async (task , updatedTask) => {
+
+    setLoading(true);
+    console.log("task id :" , task.id )
+    const res = await updateTask(task, updatedTask);
+    // const updated = tasks.filter((t) => t.id !== task.id);
+    setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...updatedTask } : t))
+    console.log(updatedTask , res);
+    setLoading(false);
+  }
 
   return (
     <div className="mx-auto max-w-7xl mx-auto my-10 text-2xl">
@@ -149,17 +212,25 @@ const Logger = ({ user, userTasks }) => {
               placeholder={"Task's category ..."}
             ></Input>
           </Field>
-            <ManualDialog
-              onAdd={(task) => {
-                setManualDialogOpen(false);
-                saveTask((task.finishedAt.getTime() - task.startedAt.getTime()) / 1000);
-                console.log(task);
-              }}
-            />
+          <ManualDialog className=""
+
+            open={manualDialogOpen}
+            onConfirm = {() => {
+              console.log("manual dialog confirmed"); 
+              setManualDialogOpen(false)}}
+            onAdd={(task) => {
+              saveTask(
+                (task.finishedAt.getTime() - task.startedAt.getTime()) / 1000,
+              );
+              
+              console.log(task);
+            }}
+          />
           
+
         </div>
         <div className="my-auto ml-5">
-          <div className="mb-5 ">{!startedAt ? "00:00:00" : showTime()}</div>
+          <div className="mb-5 ">{showTime()}</div>
           <Button
             onClick={startTimer}
             size="lg"
@@ -185,6 +256,16 @@ const Logger = ({ user, userTasks }) => {
           >
             <CircleCheck />
           </Button>
+          <div className="mt-3">
+            <Button
+            onClick={() => resetTimer()}
+            size="lg"
+            className="bg-red-400"
+            variant="outline"
+          >
+            Reset Timert
+          </Button></div>
+          
         </div>
       </div>
 
@@ -206,7 +287,10 @@ const Logger = ({ user, userTasks }) => {
 
         <div className="flex flex-col ml-5 gap-2">
           {tasks.map((task) => (
-            <div className="flex flex-row bg-white p-2 rounded-lg" key={task.name+task.duration}>
+            <div
+              className="flex flex-row bg-white p-2 rounded-lg"
+              key={task.name + task.duration}
+            >
               <div className="flex flex-row basis-1/2 items-center">
                 <Timer className="mx-3 text-gray-500" />
 
@@ -218,22 +302,26 @@ const Logger = ({ user, userTasks }) => {
                 )}
               </div>
               <div className="flex flex-col items-end basis-1/2">
-                <p className=" text-2xl  ">{convertToRealFormat(task.duration)}</p>
+                <p className=" text-2xl  ">
+                  {convertToRealFormat(task.duration)}
+                </p>
               </div>
               <ConfirmationDialog
                 open={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 onConfirm={() => deleteTaskHandler(task)}
-                
               />
-              <Button
-                onClick={() => editTaskHandler(task)}
-                size="lg"
-                className="mx-3 rounded-full bg-green-100"
-                variant="outline"
-              >
-                <Edit />
-              </Button>
+              <EditTaskDialog
+               
+                task={task}
+                open={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={() => setConfirmOpen(false)}
+                onAdd={(updatedTask) => {
+                  editTaskHandler(task, updatedTask);
+            }}
+              />
+              
             </div>
           ))}
         </div>
@@ -244,13 +332,12 @@ const Logger = ({ user, userTasks }) => {
 
 export default Logger;
 
-
 export function convertToRealFormat(time) {
-    let hours = Math.floor(time / 3600);
-    let minutes = Math.floor((time % 3600) / 60);
-    let seconds = Math.floor(time % 60);
+  let hours = Math.floor(time / 3600);
+  let minutes = Math.floor((time % 3600) / 60);
+  let seconds = Math.floor(time % 60);
 
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}

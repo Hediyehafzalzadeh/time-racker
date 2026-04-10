@@ -13,15 +13,21 @@ import {
 import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner";
 
-const ManualDialog = ({onAdd}) => {
+const ManualDialog = ({onAdd , onConfirm }) => {
     const [startedAt, setStartedAt] = React.useState("");
     const [finishedAt, setFinishedAt] = React.useState("");
 
 
     const saveTaskManually = async () => {
-        if (!startedAt || !finishedAt) return null;
+        if (!startedAt || !finishedAt || new Date(startedAt) >= new Date(finishedAt)) {
+            toast("Please enter valid start and end times.");
+            return null;
 
+        };
+
+        onConfirm();
         onAdd({
             startedAt : new Date(startedAt),
             finishedAt : new Date(finishedAt)
