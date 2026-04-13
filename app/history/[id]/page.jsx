@@ -73,14 +73,14 @@ const page = () => {
             </Popover>
           </div>
           <Button
-          onClick={() => setChartSlected(true)}
+          onClick={() => setChartSlected(!chartSelected)}
             size="lg"
             className="bg-violet-200 hover:bg-violet-400 text-black  mx-auto "
           >
             Show History Chart
           </Button>
         </div>
-        <div className="">
+        <div className="flex flex-row mt-10 gap-5">
           {isSelected ?  taskHistory.length > 0 ? <TaskHistoryList taskHistory={taskHistory} /> : <p>No tasks found for the selected date.</p> : null}
         {isSelected && taskHistory.length > 0 && chartSelected && <TaskHistoryChart taskHistory={taskHistory} />}</div>
       </div>

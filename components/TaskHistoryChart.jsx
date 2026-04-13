@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo } from "react";
 import { TrendingUp } from "lucide-react";
-import { Cell, Pie, PieChart } from "recharts";
+import { Cell, Pie, PieChart, Legend } from "recharts";
 
 import {
   Card,
@@ -14,38 +14,20 @@ import {
 } from "@/components/ui/card";
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-
-const chartConfig = {
-  visitors: {
-    label: "Visitors",
-  },
-  chrome: {
-    label: "Chrome",
-    color: "#4285F4",
-  },
-  safari: {
-    label: "Safari",
-    color: "#FFCC00",
-  },
-  firefox: {
-    label: "Firefox",
-    color: "#FF6600",
-  },
-  edge: {
-    label: "Edge",
-    color: "#00CCFF",
-  },
-  other: {
-    label: "Other",
-    color: "#9b2626",
-  },
-};
 import { convertToRealFormat } from "./Logger";
+import { Sector } from "recharts";
+
+
+const chartConfig = {};
+
 const TaskHistoryChart = ({ taskHistory }) => {
   const [historyData, setHistoryData] = React.useState([]);
+  const [activeIndex, setActiveIndex] = React.useState(null);
 
   useEffect(() => {
     if (taskHistory && taskHistory.length > 0) {
@@ -65,25 +47,46 @@ const TaskHistoryChart = ({ taskHistory }) => {
     [historyData],
   );
 
+  const onPieEnter = (_, index) => {
+    setActiveIndex(index);
+  };
+
+  const onPieLeave = () => {
+    setActiveIndex(null);
+  };
+
   return (
-    <div className="flex flex-col">
-      <Card className="flex flex-col mt-10 mx-auto w-full max-w-3/4">
-        <CardHeader className="items-center pb-0">
+    <div className="flex flex-col basis-1/2 mx-auto ">
+      <Card className="flex flex-col">
+        <CardHeader className="items-center pb-0 font-sans">
+          <CardTitle>Pie Chart - Based On Task Name</CardTitle>
+          
         </CardHeader>
         <CardContent className="flex-1 pb-0">
           <ChartContainer
             config={chartConfig}
-            className="mx-auto aspect-square max-h-[250px]"
+            className="mx-auto aspect-square max-h-[300px]"
           >
             <PieChart>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Pie data={historyData} dataKey="duration" nameKey="name">
+              <Pie
+                data={historyData}
+                dataKey="duration"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={100}
+                activeIndex={activeIndex}
+                activeShape={renderActiveShape}
+                onMouseEnter={onPieEnter}
+                onMouseLeave={onPieLeave}
+              >
                 {historyData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={colors[index]} />
                 ))}
+                <Legend className="text-black flex-wrap gap-2 *:basis-1/4 *:justify-center" />
+                {/* <ChartLegend
+                content={<ChartLegendContent nameKey="name" />}
+                className=" flex-wrap gap-2 *:basis-1/4 *:justify-center"
+              /> */}
               </Pie>
             </PieChart>
           </ChartContainer>
@@ -94,3 +97,35 @@ const TaskHistoryChart = ({ taskHistory }) => {
 };
 
 export default TaskHistoryChart;
+
+const renderActiveShape = (props) => {
+  const {
+    cx,
+    cy,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    payload,
+    value,
+  } = props;
+
+  return (
+    <g>
+      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+        {payload.name}
+      </text>
+
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 10}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+};

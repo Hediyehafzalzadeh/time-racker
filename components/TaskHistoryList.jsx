@@ -13,10 +13,10 @@ const TaskHistoryList = ({ taskHistory }) => {
   }, [taskHistory]);
 
   return (
-    <div className="flex flex-col ">
-      <div className="mt-10">
+    <div className="flex flex-col basis-1/2 mx-auto ">
+      <div className="">
         {historyData.length > 0 && 
-          <div className="mt-5 bg-mauve-100 p-5 rounded-lg mx-auto w-full max-w-3/4">
+          <div className=" bg-mauve-100 p-5 rounded-lg mx-auto w-full">
             <div className="flex flex-row  text-xl font-bold text-violet-500 mb-5">
               <p className="basis-1/2 ml-5"> name </p>
               <p className="  basis-1/2 text-end mr-5 "> duration </p>

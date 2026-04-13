@@ -72,7 +72,7 @@ export async function addTask(task ) {
         name : task.name , 
         duration : task.duration,
         created_at : new Date().toISOString() ,
-        tag : task.tag || null
+        tag : task.tag || "general"
 
     })
     .select()
