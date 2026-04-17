@@ -18,6 +18,21 @@ export async function getTasks(){
         }
     }
 
+    export async function getTasksInWeek(){
+        try{
+            const supabase = await createClient();
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            const { data , error } = await supabase.from("tasks").select("*").gte("created_at", oneWeekAgo.toISOString()).order("created_at" , {ascending : false});
+            if (error) throw error ; 
+            return data || [] ; 
+
+        }catch ( error) {
+            console.error("Get tasks error :" , error) ;
+            return [] ; 
+        }
+    }
+
 export async function getTodaysTasks(){
 
         try{
@@ -167,7 +182,7 @@ export async function getCategories(){
         }
     }
 
-export async function addCategory(category ) {
+export async function addCategory(category) {
     if(!category) throw new Error("no category provided");
 
     try{
@@ -180,11 +195,10 @@ export async function addCategory(category ) {
             }
     const { data , error } = await supabase.from("categories").upsert({
         user_id : user.id,
-        name : category.name , 
-        created_at : new Date().toISOString() ,
+        name : category , 
+        created_at : new Date().toISOString()
 
-
-    })
+    }, { onConflict: 'user_id,name' })
     .select()
     .single();
     return {name: data.name } ;

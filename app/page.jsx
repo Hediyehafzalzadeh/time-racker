@@ -24,7 +24,7 @@ export default async function Home() {
             {user &&
              <TaskHistoryButton />
              }
-             {user && <ShowProgressButton/>
+             {user && <ShowProgressButton user={user}/>
               
              
              }

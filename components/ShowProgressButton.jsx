@@ -2,13 +2,17 @@
 
 import React from 'react'
 import { Button } from './ui/button'
+import { createClient } from '@/utils/supabase/server';
+import { useRouter } from "next/navigation";
 
-const ShowProgressButton = () => {
+const ShowProgressButton = ({ user }) => {
+  const router = useRouter();
+
   return (
     <div>
         <Button
               variant="ghost"
-              onClick = {() => {}}
+              onClick = {() => {router.push(`/progress/${user.id}`)}}
               size="lg"
               className=" bg-pink-200 hover:bg-pink-400 mx-2"
             >
