@@ -28,12 +28,35 @@ const Logger = ({ user, userTasks, categories }) => {
 
   useEffect(() => {
     if (!isRunning) return;
-    let interval = setInterval(() => {
-      setCounter(
-        (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
-      );
-    }, 1000);
-    return () => clearInterval(interval);
+
+    const entries = localStorage.getItem("timeEntries");
+    if (entries === "[]") {
+      console.log("no entries yet, starting fresh counter");
+      let interval = setInterval(() => {
+        setCounter(
+          (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
+        );
+        console.log(
+          "counter updated :",
+          (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
+        );
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      console.log("entries found, resuming counter", counter);
+
+      let interval = setInterval(() => {
+        setCounter(
+          counter +
+            (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
+        );
+        console.log(
+          "counter updated :",
+          (Date.now() - parseInt(localStorage.getItem("startedAt"))) / 1000,
+        );
+      }, 1000);
+      return () => clearInterval(interval);
+    }
   }, [isRunning]);
 
   useEffect(() => {
@@ -58,6 +81,7 @@ const Logger = ({ user, userTasks, categories }) => {
         startTime,
       );
       setIsRunning(true);
+      setCounter(parseInt(c));
     }
   }, []);
 
@@ -68,17 +92,14 @@ const Logger = ({ user, userTasks, categories }) => {
     }
     if (isRunning) return;
 
-    console.log("start timer");
     let startTime = Date.now();
+    setIsRunning(true);
     localStorage.setItem("startedAt", startTime);
     localStorage.setItem("saved", false);
-
-    setIsRunning(true);
   };
 
   const stopTimer = () => {
     if (!isRunning) return null;
-
     setIsRunning(false);
     let stopTime = Date.now();
     let startedAt = parseInt(localStorage.getItem("startedAt"));
@@ -94,7 +115,6 @@ const Logger = ({ user, userTasks, categories }) => {
   };
 
   const calculateTime = async () => {
-
     if (localStorage.getItem("saved") === "true") return null;
 
     if (!currentTaskName) {
@@ -215,10 +235,8 @@ const Logger = ({ user, userTasks, categories }) => {
 
   const findCategortyColor = (categoryName) => {
     const category = categories.find((c) => c.name === categoryName);
-    console.log(category);
     return category ? category.color : "hsl(0, 0%, 80%)";
-  }
-
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl mx-auto items-stretch my-10 text-2xl gap-5 h-auto flex-col md:flex-row">
@@ -315,9 +333,11 @@ const Logger = ({ user, userTasks, categories }) => {
                 <Timer className="mx-3 text-gray-500" />
 
                 <p className="text-2xl mr-5">{task.name} </p>
-                {
-                task.tag && (
-                  <span style={{ backgroundColor: findCategortyColor(task.tag) }} className={`text-sm text-gray-700 rounded-full px-2 py-1`}>
+                {task.tag && (
+                  <span
+                    style={{ backgroundColor: findCategortyColor(task.tag) }}
+                    className={`text-sm text-gray-700 rounded-full px-2 py-1`}
+                  >
                     {task.tag}
                   </span>
                 )}
