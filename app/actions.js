@@ -216,3 +216,31 @@ export async function addCategory(category) {
     
     
 }
+
+export async function deleteCategory(category ) {
+    if(!category) throw new Error("no category provided");
+
+    try{
+    const supabase = await createClient();
+    const {
+            data : { user}, } 
+            = await supabase.auth.getUser(); 
+            if (!user) {
+                throw new Error("Not authenticated");
+            }
+    const { data , error } = await supabase.from("categories").delete().eq("id" , category.id)
+    .select()
+    .single();
+    return {name: data.name , color: data.color} ;
+ 
+    
+
+    }catch (error){
+        console.error("error in deleteCategory :", error);
+            return {error : error.message || "Failed to delete category"}
+    }
+
+
+    
+    
+}
